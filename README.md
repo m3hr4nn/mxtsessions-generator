@@ -1,12 +1,13 @@
 # MXTSessions Generator
 
-A web application that converts Excel files containing server information into MobaXterm session files (.mxtsessions) with optional password encryption support.
+A web application that converts Excel files containing server information into MobaXterm session files (.mxtsessions) with **integrated password encryption options**.
 
-## 🚀 Features
+## 🚀 Enhanced Features
 
 - **Excel to MobaXterm Conversion**: Convert .xlsx files with server credentials to .mxtsessions format
-- **Password Encryption**: Secure password encryption using Fernet (AES-128) encryption
-- **Drag & Drop Interface**: Modern, responsive web interface with drag-and-drop file upload
+- **🆕 Integrated Password Formats**: Choose between plain text or encrypted passwords directly in the output
+- **🔐 MobaXterm-Compatible Encryption**: Passwords encrypted using industry-standard AES encryption
+- **Drag & Drop Interface**: Modern, responsive web interface with MobaXterm dark theme
 - **Real-time Processing**: Instant file processing with progress indicators
 - **Cross-Platform**: Works on any device with a web browser
 - **Free Hosting**: Static frontend on GitHub Pages + dynamic backend on Render.com
@@ -25,59 +26,66 @@ Your Excel file (.xlsx) must contain exactly 4 columns with these headers:
 - File must be in .xlsx format (Excel 2007+)
 - Column headers must match exactly: `Hostname`, `IP`, `user`, `password`
 - All rows with data will be processed (empty rows are skipped)
-- Passwords can be plain text or encrypted (if using encryption feature)
+- Passwords should be in plain text (encryption happens during conversion)
 
-## 🔐 Password Encryption
+## 🔐 Password Format Options
 
-The application includes a robust password encryption system:
+### 📝 Plain Text Passwords (Default)
+- Passwords stored as plain text in the .mxtsessions file
+- Directly readable in MobaXterm
+- Best for: Personal use or secure environments
 
-### Encryption Method
-- **Algorithm**: Fernet (AES-128 in CBC mode with HMAC authentication)
-- **Key Derivation**: SHA-256 hash of your passphrase
-- **Encoding**: Base64 URL-safe encoding
+### 🔒 Encrypted Passwords (Recommended)
+- Passwords encrypted using AES-128 with Fernet
+- Requires master password for encryption/decryption
+- More secure storage in session files
+- Best for: Shared computers or sensitive environments
 
-### How to Use Encryption
+## 🎯 How to Use
 
-1. **Encrypt Passwords First** (Optional):
-   - Upload your Excel file with plain text passwords
-   - Check "Enable password encryption"
-   - Enter your encryption key
-   - Click "Encrypt Passwords Only"
-   - Download the encrypted Excel file
+### **Step 1: Choose Password Format**
+- **Plain Text**: Select "Plain Text Passwords" (default)
+- **Encrypted**: Select "Encrypted Passwords" and enter a strong master password
 
-2. **Generate Sessions with Encrypted Passwords**:
-   - Upload Excel file (with encrypted or plain passwords)
-   - If passwords are encrypted, check "Enable password encryption" and enter the same key
-   - Click "Generate MXTSessions File"
+### **Step 2: Upload Excel File**
+- Drag and drop your .xlsx file or click to browse
+- File validation happens automatically
 
-### Encryption Tool Usage Example
+### **Step 3: Generate Sessions**
+- Click "Generate MXTSessions File"
+- Download your formatted .mxtsessions file
 
-```python
-# If you want to encrypt/decrypt manually using Python
-from cryptography.fernet import Fernet
-import base64
-import hashlib
+### **Step 4: Import to MobaXterm**
+- Open MobaXterm
+- Go to Sessions → Import Sessions
+- Select your downloaded .mxtsessions file
+- Sessions will appear in your bookmarks
 
-def generate_key_from_password(password):
-    key = hashlib.sha256(password.encode()).digest()
-    return base64.urlsafe_b64encode(key)
+## 🔧 Output Formats
 
-def encrypt_password(password, encryption_key):
-    key = generate_key_from_password(encryption_key)
-    fernet = Fernet(key)
-    encrypted = fernet.encrypt(password.encode())
-    return base64.urlsafe_b64encode(encrypted).decode()
+### Plain Text Output (`servers.mxtsessions`)
+```ini
+[Bookmarks]
+SubRep=servers
+ImgNum=41
 
-# Example usage
-encrypted_pass = encrypt_password("mypassword123", "my_secret_key")
-print(encrypted_pass)
+server1_192.168.1.10=#109#0%192.168.1.10%22%admin%mypassword123%-1%-1%%%%%0%0%0%%1080%%0%0%1#MobaFont%10%0%0%-1%15%236,236,236%30,30,30%180,180,192%0%-1%0%%xterm%-1%-1%_Std_Colors_0_%80%24%0%1%-1%<none>%%0%1%-1#0# #-1
+```
+
+### Encrypted Output (`servers_encrypted.mxtsessions`)
+```ini
+[Bookmarks]
+SubRep=servers
+ImgNum=41
+
+server1_192.168.1.10=#109#0%192.168.1.10%22%admin%ENC:gAAAAABh...encrypted_data...%-1%-1%%%%%0%0%0%%1080%%0%0%1#MobaFont%10%0%0%-1%15%236,236,236%30,30,30%180,180,192%0%-1%0%%xterm%-1%-1%_Std_Colors_0_%80%24%0%1%-1%<none>%%0%1%-1#0# #-1
 ```
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐    HTTPS      ┌─────────────────────┐
-│   GitHub Pages  │──────────────▶/   Render.com API   /
+┌─────────────────┐    HTTPS     ┌─────────────────────┐
+│   GitHub Pages  │──────────────▶│   Render.com API    │
 │  (Static Site)  │               │  (Flask Backend)    │
 │                 │               │                     │
 │  - HTML/CSS/JS  │               │  - File Processing  │
@@ -260,26 +268,25 @@ The new dark theme includes:
 ## 🔍 API Endpoints
 
 ### POST /generate
-Generate MobaXterm sessions file from Excel
+Generate MobaXterm sessions file with password format options
 
 **Request:**
 - Form data with `file` (Excel file)
-- Optional: `encryptionKey` for password decryption
+- `passwordFormat`: `"plain"` or `"encrypted"`
+- `encryptionKey`: Required if passwordFormat is `"encrypted"`
 
 **Response:**
 - Success: `.mxtsessions` file download
 - Error: JSON with error message
 
-### POST /encrypt  
-Encrypt passwords in Excel file
-
-**Request:**
-- Form data with `file` (Excel file)
-- Required: `encryptionKey` for encryption
-
-**Response:**
-- Success: Encrypted Excel file download
-- Error: JSON with error message
+**Example:**
+```bash
+curl -X POST \
+  -F "file=@servers.xlsx" \
+  -F "passwordFormat=encrypted" \
+  -F "encryptionKey=my_master_password" \
+  https://your-api.onrender.com/generate
+```
 
 ### GET /health
 Health check endpoint
@@ -288,7 +295,24 @@ Health check endpoint
 ```json
 {
   "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00"
+  "timestamp": "2025-01-26T10:30:00"
+}
+```
+
+### GET /
+API information and version
+
+**Response:**
+```json
+{
+  "message": "MXTSessions Generator API - Enhanced Version",
+  "version": "2.0.0",
+  "features": [
+    "Generate MobaXterm sessions with plain text passwords",
+    "Generate MobaXterm sessions with encrypted passwords",
+    "MobaXterm-compatible password encryption",
+    "Lightweight processing without pandas"
+  ]
 }
 ```
 
@@ -337,82 +361,69 @@ server1_192.168.1.10=#109#0%192.168.1.10%22%admin%password123%-1%-1%%%%%0%0%0%%1
 web-server_10.0.0.5=#109#0%10.0.0.5%22%root%securepass456%-1%-1%%%%%0%0%0%%1080%%0%0%1#MobaFont%10%0%0%-1%15%236,236,236%30,30,30%180,180,192%0%-1%0%%xterm%-1%-1%_Std_Colors_0_%80%24%0%1%-1%<none>%%0%1%-1#0# #-1
 ```
 
-## 🔐 Advanced Encryption Tool
+## 🛠️ Password Decryption Tool
 
-For manual encryption/decryption outside the web app, use this Python script:
+For advanced users who need to decrypt passwords from encrypted .mxtsessions files, use the included decryption tool:
 
-```python
-#!/usr/bin/env python3
-"""
-MXTSessions Password Encryption Tool
-Compatible with the web application's encryption method
-"""
-
-from cryptography.fernet import Fernet
-import base64
-import hashlib
-import argparse
-import sys
-
-def generate_key_from_password(password):
-    """Generate a Fernet key from a password"""
-    key = hashlib.SHA256(password.encode()).digest()
-    return base64.urlsafe_b64encode(key)
-
-def encrypt_password(password, encryption_key):
-    """Encrypt a password using Fernet encryption"""
-    try:
-        key = generate_key_from_password(encryption_key)
-        fernet = Fernet(key)
-        encrypted = fernet.encrypt(password.encode())
-        return base64.urlsafe_b64encode(encrypted).decode()
-    except Exception as e:
-        raise Exception(f"Encryption failed: {str(e)}")
-
-def decrypt_password(encrypted_password, encryption_key):
-    """Decrypt a password using Fernet encryption"""
-    try:
-        key = generate_key_from_password(encryption_key)
-        fernet = Fernet(key)
-        encrypted_bytes = base64.urlsafe_b64decode(encrypted_password.encode())
-        decrypted = fernet.decrypt(encrypted_bytes)
-        return decrypted.decode()
-    except Exception as e:
-        raise Exception(f"Decryption failed: {str(e)}")
-
-def main():
-    parser = argparse.ArgumentParser(description='MXTSessions Password Encryption Tool')
-    parser.add_argument('action', choices=['encrypt', 'decrypt'], help='Action to perform')
-    parser.add_argument('password', help='Password to encrypt/decrypt')
-    parser.add_argument('key', help='Encryption key')
-    
-    args = parser.parse_args()
-    
-    try:
-        if args.action == 'encrypt':
-            result = encrypt_password(args.password, args.key)
-            print(f"Encrypted: {result}")
-        else:
-            result = decrypt_password(args.password, args.key)
-            print(f"Decrypted: {result}")
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
-```
-
-**Usage:**
+### Installation
 ```bash
-# Install required package
+# Install required dependency
 pip install cryptography
 
-# Encrypt a password
-python encrypt_tool.py encrypt "mypassword123" "my_secret_key"
+# Make the tool executable
+chmod +x mobaxterm_decrypt.py
+```
 
-# Decrypt a password
-python encrypt_tool.py decrypt "gAAAAABh..." "my_secret_key"
+### Usage Examples
+```bash
+# View session info without showing passwords
+python mobaxterm_decrypt.py servers_encrypted.mxtsessions "my_master_password"
+
+# Show decrypted passwords in terminal (use with caution)
+python mobaxterm_decrypt.py servers_encrypted.mxtsessions "my_master_password" --show-passwords
+
+# Generate a new file with decrypted passwords
+python mobaxterm_decrypt.py servers_encrypted.mxtsessions "my_master_password" --output servers_plain.mxtsessions
+
+# Verbose output with password display
+python mobaxterm_decrypt.py servers_encrypted.mxtsessions "my_master_password" -o decrypted.mxtsessions -s -v
+```
+
+### Sample Output
+```
+🔍 Parsing sessions file: servers_encrypted.mxtsessions
+✅ Found 3 sessions
+🔓 Decrypting passwords with master password...
+📊 Results:
+   🔓 Decrypted: 3
+   📝 Already plain: 0
+   ❌ Failed: 0
+💾 Generating decrypted sessions file: servers_plain.mxtsessions
+✅ Decrypted sessions saved to: servers_plain.mxtsessions
+```
+
+## 🎨 MobaXterm Dark Theme
+
+The application features an authentic MobaXterm-inspired dark theme:
+
+### Design Features
+- **Terminal-inspired color scheme**: Dark backgrounds with cyan/blue accents matching MobaXterm
+- **Monospace fonts**: Consolas/Monaco for authentic terminal look
+- **Glowing effects**: Subtle animations and shadows
+- **Responsive design**: Works perfectly on desktop, tablet, and mobile
+- **Modern UI elements**: Radio buttons, progress bars, and status indicators
+- **Accessibility**: High contrast and keyboard navigation support
+
+### Color Palette
+```css
+--moba-bg-primary: #1e1e1e      /* Main background */
+--moba-bg-secondary: #2d2d30    /* Container background */
+--moba-accent-blue: #007acc     /* Primary accent */
+--moba-accent-cyan: #00d4aa     /* Success/highlight */
+--moba-accent-orange: #ff8c00   /* Warning/encryption */
+--moba-text-primary: #cccccc    /* Main text */
+--moba-success: #4ec9b0         /* Success messages */
+--moba-error: #f44747           /* Error messages */
 ```
 
 ## 🎯 Performance Optimization
