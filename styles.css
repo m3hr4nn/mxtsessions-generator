@@ -1,0 +1,462 @@
+/* MobaXterm Dark Theme CSS */
+:root {
+    /* MobaXterm Color Palette */
+    --moba-bg-primary: #1e1e1e;
+    --moba-bg-secondary: #2d2d30;
+    --moba-bg-tertiary: #383838;
+    --moba-accent-blue: #007acc;
+    --moba-accent-cyan: #00d4aa;
+    --moba-accent-orange: #ff8c00;
+    --moba-text-primary: #cccccc;
+    --moba-text-secondary: #969696;
+    --moba-text-dim: #6a6a6a;
+    --moba-border: #404040;
+    --moba-border-hover: #505050;
+    --moba-success: #4ec9b0;
+    --moba-error: #f44747;
+    --moba-warning: #ffcc02;
+    --moba-terminal-green: #00ff00;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    background: linear-gradient(135deg, var(--moba-bg-primary) 0%, #252526 50%, var(--moba-bg-secondary) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: var(--moba-text-primary);
+}
+
+.container {
+    background: var(--moba-bg-secondary);
+    border: 2px solid var(--moba-border);
+    border-radius: 8px;
+    padding: 40px;
+    box-shadow: 
+        0 0 30px rgba(0, 122, 204, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    max-width: 650px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, 
+        var(--moba-accent-blue), 
+        var(--moba-accent-cyan), 
+        var(--moba-accent-orange),
+        var(--moba-accent-blue)
+    );
+    background-size: 300% 100%;
+    animation: terminalGlow 4s ease-in-out infinite;
+}
+
+@keyframes terminalGlow {
+    0%, 100% { 
+        background-position: 0% 50%;
+        opacity: 0.8;
+    }
+    50% { 
+        background-position: 100% 50%;
+        opacity: 1;
+    }
+}
+
+h1 {
+    color: var(--moba-accent-cyan);
+    margin-bottom: 10px;
+    font-size: 2.8em;
+    font-weight: 700;
+    text-shadow: 
+        0 0 10px rgba(0, 212, 170, 0.5),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    font-family: 'Consolas', monospace;
+    letter-spacing: -1px;
+}
+
+.subtitle {
+    color: var(--moba-text-secondary);
+    margin-bottom: 35px;
+    font-size: 1.1em;
+    font-weight: 400;
+}
+
+.upload-area {
+    border: 2px dashed var(--moba-border);
+    border-radius: 8px;
+    padding: 40px 20px;
+    margin: 30px 0;
+    background: 
+        linear-gradient(135deg, 
+            rgba(0, 122, 204, 0.03) 0%, 
+            rgba(0, 212, 170, 0.03) 100%
+        );
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    backdrop-filter: blur(5px);
+}
+
+.upload-area:hover {
+    border-color: var(--moba-accent-blue);
+    background: 
+        linear-gradient(135deg, 
+            rgba(0, 122, 204, 0.08) 0%, 
+            rgba(0, 212, 170, 0.08) 100%
+        );
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 122, 204, 0.15);
+}
+
+.upload-area.dragover {
+    border-color: var(--moba-success);
+    background: rgba(78, 201, 176, 0.1);
+    box-shadow: 
+        0 0 20px rgba(78, 201, 176, 0.3),
+        inset 0 0 20px rgba(78, 201, 176, 0.1);
+}
+
+.upload-icon {
+    font-size: 3.5em;
+    color: var(--moba-accent-blue);
+    margin-bottom: 15px;
+    filter: drop-shadow(0 0 10px rgba(0, 122, 204, 0.3));
+}
+
+.upload-text {
+    font-size: 1.3em;
+    color: var(--moba-text-primary);
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.upload-subtext {
+    color: var(--moba-text-dim);
+    font-size: 0.95em;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.btn {
+    background: linear-gradient(135deg, 
+        var(--moba-accent-blue) 0%, 
+        var(--moba-accent-cyan) 100%
+    );
+    color: #ffffff;
+    border: 1px solid var(--moba-accent-blue);
+    padding: 15px 30px;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: 600;
+    font-family: 'Consolas', monospace;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 10px;
+    box-shadow: 
+        0 4px 15px rgba(0, 122, 204, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+        0 8px 25px rgba(0, 122, 204, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, 
+        #0088ff 0%, 
+        var(--moba-accent-cyan) 100%
+    );
+}
+
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    background: var(--moba-bg-tertiary);
+    border-color: var(--moba-border);
+    box-shadow: none;
+}
+
+.progress-container {
+    display: none;
+    margin: 25px 0;
+    padding: 0 10px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--moba-bg-tertiary);
+    border: 1px solid var(--moba-border);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, 
+        var(--moba-accent-blue), 
+        var(--moba-accent-cyan)
+    );
+    width: 0%;
+    transition: width 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 100%
+    );
+    animation: progressShine 2s ease-in-out infinite;
+}
+
+@keyframes progressShine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.status {
+    margin: 25px 0;
+    padding: 15px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-family: 'Consolas', monospace;
+    display: none;
+    border-left: 4px solid;
+}
+
+.status.success {
+    background: rgba(78, 201, 176, 0.1);
+    color: var(--moba-success);
+    border-color: var(--moba-success);
+    border-left-color: var(--moba-success);
+    box-shadow: 0 0 10px rgba(78, 201, 176, 0.2);
+}
+
+.status.error {
+    background: rgba(244, 71, 71, 0.1);
+    color: var(--moba-error);
+    border-color: var(--moba-error);
+    border-left-color: var(--moba-error);
+    box-shadow: 0 0 10px rgba(244, 71, 71, 0.2);
+}
+
+.file-info {
+    background: rgba(0, 122, 204, 0.08);
+    border: 1px solid rgba(0, 122, 204, 0.3);
+    border-left: 4px solid var(--moba-accent-blue);
+    padding: 18px;
+    border-radius: 6px;
+    margin: 25px 0;
+    display: none;
+    text-align: left;
+    font-family: 'Consolas', monospace;
+    font-size: 0.95em;
+}
+
+.encryption-section {
+    background: var(--moba-bg-tertiary);
+    border: 1px solid var(--moba-border);
+    border-radius: 8px;
+    padding: 25px;
+    margin: 25px 0;
+    position: relative;
+}
+
+.encryption-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        var(--moba-accent-orange), 
+        var(--moba-warning)
+    );
+    border-radius: 8px 8px 0 0;
+}
+
+.encryption-section h3 {
+    color: var(--moba-accent-orange);
+    margin-bottom: 20px;
+    font-size: 1.4em;
+    font-family: 'Consolas', monospace;
+    text-shadow: 0 0 8px rgba(255, 140, 0, 0.3);
+}
+
+.form-group {
+    margin: 20px 0;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    color: var(--moba-text-primary);
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-family: 'Consolas', monospace;
+    font-size: 0.95em;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid var(--moba-border);
+    border-radius: 6px;
+    font-size: 1em;
+    font-family: 'Consolas', monospace;
+    background: var(--moba-bg-primary);
+    color: var(--moba-text-primary);
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--moba-accent-blue);
+    background: rgba(0, 122, 204, 0.05);
+    box-shadow: 
+        0 0 10px rgba(0, 122, 204, 0.3),
+        inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.form-group input::placeholder {
+    color: var(--moba-text-dim);
+    font-style: italic;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 1px solid var(--moba-border);
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
+    accent-color: var(--moba-accent-blue);
+    cursor: pointer;
+}
+
+.checkbox-group label {
+    color: var(--moba-text-primary);
+    font-family: 'Consolas', monospace;
+    cursor: pointer;
+    margin: 0;
+}
+
+/* Terminal-like scrollbar */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--moba-bg-primary);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--moba-border);
+    border-radius: 6px;
+    border: 2px solid var(--moba-bg-primary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--moba-border-hover);
+}
+
+/* Selection styling */
+::selection {
+    background: rgba(0, 122, 204, 0.3);
+    color: var(--moba-text-primary);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .container {
+        padding: 25px 20px;
+        margin: 10px;
+        border-radius: 6px;
+    }
+    
+    h1 {
+        font-size: 2.2em;
+    }
+    
+    .upload-area {
+        padding: 30px 15px;
+    }
+    
+    .btn {
+        padding: 12px 25px;
+        font-size: 1em;
+        margin: 8px;
+    }
+    
+    .encryption-section {
+        padding: 20px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        padding: 20px 15px;
+    }
+    
+    h1 {
+        font-size: 1.8em;
+    }
+    
+    .upload-area {
+        padding: 25px 10px;
+    }
+    
+    .upload-icon {
+        font-size: 2.5em;
+    }
+    
+    .btn {
+        width: 100%;
+        margin: 5px 0;
+    }
+}
