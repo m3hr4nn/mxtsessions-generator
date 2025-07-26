@@ -1,13 +1,13 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import pandas as pd
-import io
 import tempfile
 import os
 from cryptography.fernet import Fernet
 import base64
 import hashlib
 from datetime import datetime
+from openpyxl import load_workbook
+import io
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -39,21 +39,97 @@ def decrypt_password(encrypted_password, encryption_key):
     except Exception as e:
         raise Exception(f"Decryption failed: {str(e)}")
 
-def validate_excel_structure(df):
-    """Validate that the Excel file has the required columns"""
-    required_columns = ['Hostname', 'IP', 'user', 'password']
-    missing_columns = [col for col in required_columns if col not in df.columns]
-    
-    if missing_columns:
-        raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
-    
-    # Check for empty rows
-    if df.empty:
-        raise ValueError("Excel file contains no data rows")
-    
-    return True
+def read_excel_file(file_content):
+    """Read Excel file using openpyxl and return data as list of dictionaries"""
+    try:
+        # Load workbook from file content
+        workbook = load_workbook(io.BytesIO(file_content))
+        worksheet = workbook.active
+        
+        # Get header row (first row)
+        headers = []
+        for cell in worksheet[1]:
+            if cell.value:
+                headers.append(str(cell.value).strip())
+            else:
+                headers.append('')
+        
+        # Validate required columns
+        required_columns = ['Hostname', 'IP', 'user', 'password']
+        missing_columns = [col for col in required_columns if col not in headers]
+        
+        if missing_columns:
+            raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
+        
+        # Get column indices
+        hostname_idx = headers.index('Hostname')
+        ip_idx = headers.index('IP')
+        user_idx = headers.index('user')
+        password_idx = headers.index('password')
+        
+        # Read data rows
+        data = []
+        for row_num, row in enumerate(worksheet.iter_rows(min_row=2, values_only=True), start=2):
+            if not row or all(cell is None or str(cell).strip() == '' for cell in row):
+                continue  # Skip empty rows
+            
+            # Ensure we have enough columns
+            row_data = list(row) + [None] * (len(headers) - len(row))
+            
+            hostname = str(row_data[hostname_idx] or '').strip()
+            ip = str(row_data[ip_idx] or '').strip()
+            user = str(row_data[user_idx] or '').strip()
+            password = str(row_data[password_idx] or '').strip()
+            
+            # Skip rows without essential data
+            if not hostname or not ip:
+                continue
+                
+            data.append({
+                'Hostname': hostname,
+                'IP': ip,
+                'user': user,
+                'password': password
+            })
+        
+        if not data:
+            raise ValueError("No valid data rows found in Excel file")
+        
+        return data
+        
+    except Exception as e:
+        if "Missing required columns" in str(e) or "No valid data rows" in str(e):
+            raise e
+        else:
+            raise Exception(f"Failed to read Excel file: {str(e)}")
 
-def generate_mxtsessions_content(df, file_name):
+def write_excel_file(data, output_path):
+    """Write data to Excel file using openpyxl"""
+    try:
+        from openpyxl import Workbook
+        
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Servers"
+        
+        # Write headers
+        headers = ['Hostname', 'IP', 'user', 'password']
+        for col_num, header in enumerate(headers, 1):
+            worksheet.cell(row=1, column=col_num, value=header)
+        
+        # Write data
+        for row_num, row_data in enumerate(data, 2):
+            worksheet.cell(row=row_num, column=1, value=row_data['Hostname'])
+            worksheet.cell(row=row_num, column=2, value=row_data['IP'])
+            worksheet.cell(row=row_num, column=3, value=row_data['user'])
+            worksheet.cell(row=row_num, column=4, value=row_data['password'])
+        
+        workbook.save(output_path)
+        
+    except Exception as e:
+        raise Exception(f"Failed to write Excel file: {str(e)}")
+
+def generate_mxtsessions_content(data, file_name):
     """Generate MobaXterm sessions file content"""
     
     # Header section
@@ -62,16 +138,12 @@ def generate_mxtsessions_content(df, file_name):
     content += f"ImgNum=41\n\n"
     
     # Sessions section
-    for index, row in df.iterrows():
-        hostname = str(row['Hostname']).strip()
-        ip = str(row['IP']).strip()
-        username = str(row['user']).strip()
-        password = str(row['password']).strip()
+    for row in data:
+        hostname = row['Hostname']
+        ip = row['IP']
+        username = row['user']
+        password = row['password']
         
-        # Skip empty rows
-        if not hostname or not ip:
-            continue
-            
         # Session entry format for MobaXterm
         session_name = f"{hostname}_{ip}"
         content += f"{session_name}=#109#0%{ip}%22%{username}%{password}%-1%-1%%%%%0%0%0%%1080%%0%0%1#MobaFont%10%0%0%-1%15%236,236,236%30,30,30%180,180,192%0%-1%0%%xterm%-1%-1%_Std_Colors_0_%80%24%0%1%-1%<none>%%0%1%-1#0# #-1\n"
@@ -81,8 +153,8 @@ def generate_mxtsessions_content(df, file_name):
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({
-        "message": "MXTSessions Generator API",
-        "version": "1.0",
+        "message": "MXTSessions Generator API - Lightweight Version",
+        "version": "1.1.0",
         "endpoints": {
             "/generate": "POST - Generate MobaXterm sessions file",
             "/encrypt": "POST - Encrypt passwords in Excel file",
@@ -113,23 +185,18 @@ def generate_sessions():
         
         # Read Excel file
         try:
-            df = pd.read_excel(file, engine='openpyxl')
+            file_content = file.read()
+            data = read_excel_file(file_content)
         except Exception as e:
-            return jsonify({"error": f"Failed to read Excel file: {str(e)}"}), 400
-        
-        # Validate structure
-        try:
-            validate_excel_structure(df)
-        except ValueError as e:
             return jsonify({"error": str(e)}), 400
         
         # Decrypt passwords if encryption key is provided
         if encryption_key:
             try:
-                for index in df.index:
-                    encrypted_password = str(df.at[index, 'password'])
-                    if encrypted_password and encrypted_password != 'nan':
-                        df.at[index, 'password'] = decrypt_password(encrypted_password, encryption_key)
+                for row in data:
+                    encrypted_password = row['password']
+                    if encrypted_password and encrypted_password.strip():
+                        row['password'] = decrypt_password(encrypted_password, encryption_key)
             except Exception as e:
                 return jsonify({"error": f"Password decryption failed: {str(e)}"}), 400
         
@@ -138,7 +205,7 @@ def generate_sessions():
         
         # Generate MobaXterm sessions content
         try:
-            sessions_content = generate_mxtsessions_content(df, base_filename)
+            sessions_content = generate_mxtsessions_content(data, base_filename)
         except Exception as e:
             return jsonify({"error": f"Failed to generate sessions: {str(e)}"}), 500
         
@@ -186,28 +253,23 @@ def encrypt_passwords():
         
         # Read Excel file
         try:
-            df = pd.read_excel(file, engine='openpyxl')
+            file_content = file.read()
+            data = read_excel_file(file_content)
         except Exception as e:
-            return jsonify({"error": f"Failed to read Excel file: {str(e)}"}), 400
-        
-        # Validate structure
-        try:
-            validate_excel_structure(df)
-        except ValueError as e:
             return jsonify({"error": str(e)}), 400
         
         # Encrypt passwords
         try:
-            for index in df.index:
-                password = str(df.at[index, 'password'])
-                if password and password != 'nan' and password.strip():
-                    df.at[index, 'password'] = encrypt_password(password.strip(), encryption_key)
+            for row in data:
+                password = row['password']
+                if password and password.strip():
+                    row['password'] = encrypt_password(password.strip(), encryption_key)
         except Exception as e:
             return jsonify({"error": f"Password encryption failed: {str(e)}"}), 400
         
         # Create temporary Excel file
         with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp_file:
-            df.to_excel(tmp_file.name, index=False, engine='openpyxl')
+            write_excel_file(data, tmp_file.name)
             tmp_file_path = tmp_file.name
         
         # Generate output filename
