@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MXTSessions Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>MXTSessions Generator</h1>
+        <p class="subtitle">Convert Excel files to MobaXterm session files</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Drop your Excel file here</div>
+            <div class="upload-subtext">or click to browse (Supports .xlsx files)</div>
+            <input type="file" id="fileInput" accept=".xlsx" />
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <strong>Selected file:</strong> <span id="fileName"></span><br>
+            <strong>Size:</strong> <span id="fileSize"></span>
+        </div>
+
+        <div class="encryption-section">
+            <h3>🔐 Password Encryption (Optional)</h3>
+            <div class="checkbox-group">
+                <input type="checkbox" id="enableEncryption">
+                <label for="enableEncryption">Enable password encryption</label>
+            </div>
+            <div class="form-group" id="encryptionKey" style="display: none;">
+                <label for="secretKey">Encryption Key:</label>
+                <input type="password" id="secretKey" placeholder="Enter your encryption key">
+            </div>
+        </div>
+
+        <button class="btn" id="generateBtn" disabled>Generate MXTSessions File</button>
+        <button class="btn" id="encryptOnlyBtn" style="display: none;">Encrypt Passwords Only</button>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://your-render-app.onrender.com'; // Replace with your Render.com URL
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const encryptOnlyBtn = document.getElementById('encryptOnlyBtn');
+        const status = document.getElementById('status');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const enableEncryption = document.getElementById('enableEncryption');
+        const encryptionKey = document.getElementById('encryptionKey');
+        const secretKey = document.getElementById('secretKey');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+
+        let selectedFile = null;
+
+        // File upload handling
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Encryption toggle
+        enableEncryption.addEventListener('change', (e) => {
+            encryptionKey.style.display = e.target.checked ? 'block' : 'none';
+            encryptOnlyBtn.style.display = e.target.checked && selectedFile ? 'inline-block' : 'none';
+        });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.xlsx')) {
+                showStatus('Please select a valid .xlsx file', 'error');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'block';
+            generateBtn.disabled = false;
+            
+            if (enableEncryption.checked) {
+                encryptOnlyBtn.style.display = 'inline-block';
+            }
+            
+            showStatus('File selected successfully', 'success');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+
+        function showProgress(percent) {
+            progressContainer.style.display = 'block';
+            progressFill.style.width = percent + '%';
+            if (percent >= 100) {
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 1000);
+            }
+        }
+
+        async function uploadAndProcess(endpoint) {
+            if (!selectedFile) {
+                showStatus('Please select a file first', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            if (enableEncryption.checked && secretKey.value) {
+                formData.append('encryptionKey', secretKey.value);
+            }
+
+            try {
+                generateBtn.disabled = true;
+                encryptOnlyBtn.disabled = true;
+                showProgress(10);
+                
+                showStatus('Uploading file...', 'success');
+                showProgress(30);
+
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                showProgress(70);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const result = await response.json();
+                    if (result.error) {
+                        throw new Error(result.error);
+                    }
+                    showStatus(result.message || 'Processing completed', 'success');
+                } else {
+                    // File download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = selectedFile.name.replace('.xlsx', endpoint === '/generate' ? '.mxtsessions' : '_encrypted.xlsx');
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    showStatus(`File downloaded successfully: ${a.download}`, 'success');
+                }
+
+                showProgress(100);
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`Error: ${error.message}`, 'error');
+                showProgress(0);
+            } finally {
+                generateBtn.disabled = false;
+                encryptOnlyBtn.disabled = false;
+            }
+        }
+
+        generateBtn.addEventListener('click', () => uploadAndProcess('/generate'));
+        encryptOnlyBtn.addEventListener('click', () => uploadAndProcess('/encrypt'));
+    </script>
+</body>
+</html>
