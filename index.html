@@ -25,19 +25,31 @@
         </div>
 
         <div class="encryption-section">
-            <h3>🔐 Password Encryption (Optional)</h3>
-            <div class="checkbox-group">
-                <input type="checkbox" id="enableEncryption">
-                <label for="enableEncryption">Enable password encryption</label>
+            <h3>🔐 Output Password Format</h3>
+            <div class="radio-group">
+                <div class="radio-option">
+                    <input type="radio" id="plainPassword" name="passwordFormat" value="plain" checked>
+                    <label for="plainPassword">
+                        <span class="radio-title">📝 Plain Text Passwords</span>
+                        <span class="radio-desc">Passwords visible in MobaXterm sessions (default)</span>
+                    </label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="encryptedPassword" name="passwordFormat" value="encrypted">
+                    <label for="encryptedPassword">
+                        <span class="radio-title">🔒 Encrypted Passwords</span>
+                        <span class="radio-desc">Passwords encrypted in MobaXterm format (more secure)</span>
+                    </label>
+                </div>
             </div>
-            <div class="form-group" id="encryptionKey" style="display: none;">
-                <label for="secretKey">Encryption Key:</label>
-                <input type="password" id="secretKey" placeholder="Enter your encryption key">
+            <div class="form-group" id="encryptionKeyGroup" style="display: none;">
+                <label for="secretKey">🔑 Master Password for Encryption:</label>
+                <input type="password" id="secretKey" placeholder="Enter a strong master password">
+                <small class="input-help">This master password will be used to encrypt/decrypt your session passwords</small>
             </div>
         </div>
 
         <button class="btn" id="generateBtn" disabled>Generate MXTSessions File</button>
-        <button class="btn" id="encryptOnlyBtn" style="display: none;">Encrypt Passwords Only</button>
 
         <div class="progress-container" id="progressContainer">
             <div class="progress-bar">
@@ -49,23 +61,32 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'https://mxtsessions-api.onrender.com'; 
+        const API_BASE_URL = 'https://your-render-app.onrender.com'; // Replace with your Render.com URL
         
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const generateBtn = document.getElementById('generateBtn');
-        const encryptOnlyBtn = document.getElementById('encryptOnlyBtn');
         const status = document.getElementById('status');
         const fileInfo = document.getElementById('fileInfo');
         const fileName = document.getElementById('fileName');
         const fileSize = document.getElementById('fileSize');
-        const enableEncryption = document.getElementById('enableEncryption');
-        const encryptionKey = document.getElementById('encryptionKey');
+        const encryptionKeyGroup = document.getElementById('encryptionKeyGroup');
         const secretKey = document.getElementById('secretKey');
         const progressContainer = document.getElementById('progressContainer');
         const progressFill = document.getElementById('progressFill');
 
         let selectedFile = null;
+
+        // Password format handling
+        const passwordFormatRadios = document.querySelectorAll('input[name="passwordFormat"]');
+        passwordFormatRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                encryptionKeyGroup.style.display = e.target.value === 'encrypted' ? 'block' : 'none';
+                if (e.target.value === 'plain') {
+                    secretKey.value = '';
+                }
+            });
+        });
 
         // File upload handling
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -91,12 +112,6 @@
             }
         });
 
-        // Encryption toggle
-        enableEncryption.addEventListener('change', (e) => {
-            encryptionKey.style.display = e.target.checked ? 'block' : 'none';
-            encryptOnlyBtn.style.display = e.target.checked && selectedFile ? 'inline-block' : 'none';
-        });
-
         function handleFile(file) {
             if (!file.name.endsWith('.xlsx')) {
                 showStatus('Please select a valid .xlsx file', 'error');
@@ -108,10 +123,6 @@
             fileSize.textContent = formatFileSize(file.size);
             fileInfo.style.display = 'block';
             generateBtn.disabled = false;
-            
-            if (enableEncryption.checked) {
-                encryptOnlyBtn.style.display = 'inline-block';
-            }
             
             showStatus('File selected successfully', 'success');
         }
@@ -143,7 +154,7 @@
             }
         }
 
-        async function uploadAndProcess(endpoint) {
+        async function uploadAndProcess() {
             if (!selectedFile) {
                 showStatus('Please select a file first', 'error');
                 return;
@@ -152,19 +163,27 @@
             const formData = new FormData();
             formData.append('file', selectedFile);
             
-            if (enableEncryption.checked && secretKey.value) {
+            // Get password format preference
+            const passwordFormat = document.querySelector('input[name="passwordFormat"]:checked').value;
+            formData.append('passwordFormat', passwordFormat);
+            
+            // Add encryption key if encrypted format is selected
+            if (passwordFormat === 'encrypted') {
+                if (!secretKey.value.trim()) {
+                    showStatus('Please enter a master password for encryption', 'error');
+                    return;
+                }
                 formData.append('encryptionKey', secretKey.value);
             }
 
             try {
                 generateBtn.disabled = true;
-                encryptOnlyBtn.disabled = true;
                 showProgress(10);
                 
-                showStatus('Uploading file...', 'success');
+                showStatus('Processing file...', 'success');
                 showProgress(30);
 
-                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                const response = await fetch(`${API_BASE_URL}/generate`, {
                     method: 'POST',
                     body: formData
                 });
@@ -172,44 +191,38 @@
                 showProgress(70);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
 
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    const result = await response.json();
-                    if (result.error) {
-                        throw new Error(result.error);
-                    }
-                    showStatus(result.message || 'Processing completed', 'success');
-                } else {
-                    // File download
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = selectedFile.name.replace('.xlsx', endpoint === '/generate' ? '.mxtsessions' : '_encrypted.xlsx');
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    
-                    showStatus(`File downloaded successfully: ${a.download}`, 'success');
-                }
+                // File download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                const formatSuffix = passwordFormat === 'encrypted' ? '_encrypted' : '';
+                a.download = selectedFile.name.replace('.xlsx', `${formatSuffix}.mxtsessions`);
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                const formatText = passwordFormat === 'encrypted' ? 'with encrypted passwords' : 'with plain text passwords';
+                showStatus(`✅ MXTSessions file generated successfully ${formatText}!`, 'success');
 
                 showProgress(100);
             } catch (error) {
                 console.error('Error:', error);
-                showStatus(`Error: ${error.message}`, 'error');
+                showStatus(`❌ Error: ${error.message}`, 'error');
                 showProgress(0);
             } finally {
                 generateBtn.disabled = false;
-                encryptOnlyBtn.disabled = false;
             }
         }
 
-        generateBtn.addEventListener('click', () => uploadAndProcess('/generate'));
-        encryptOnlyBtn.addEventListener('click', () => uploadAndProcess('/encrypt'));
+        generateBtn.addEventListener('click', uploadAndProcess);
     </script>
 </body>
 </html>
