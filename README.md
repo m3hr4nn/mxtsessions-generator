@@ -107,135 +107,15 @@ mxtsessions-generator/
         └── deploy.yml     # GitHub Actions for deployment
 ```
 
-## 🚀 Deployment Guide
 
-### Part 1: Deploy Backend on Render.com
-
-1. **Create Render Account**:
-   - Go to [render.com](https://render.com)
-   - Sign up for a free account
-
-2. **Create New Web Service**:
-   - Click "New +" → "Web Service"
-   - Choose "Build and deploy from a Git repository"
-   - Connect your GitHub account if not already connected
-
-3. **Configure the Service**:
-   ```
-   Name: mxtsessions-api (or any name you prefer)
-   Environment: Python 3
-   Build Command: pip install -r requirements.txt
-   Start Command: python app.py
-   ```
-
-4. **Environment Variables** (Optional):
-   - Add any environment variables if needed
-   - The app will automatically use PORT from Render
-
-5. **Deploy**:
-   - Click "Create Web Service"
-   - Wait for deployment (usually 2-3 minutes)
-   - Note your service URL (e.g., `https://your-app-name.onrender.com`)
-
-### Part 2: Deploy Frontend on GitHub Pages
-
-1. **Prepare Repository**:
-   ```bash
-   git clone https://github.com/m3hr4nn/mxtsessions-generator.git
-   cd mxtsessions-generator
-   
-   # Add your files
-   git add .
-   git commit -m "Initial commit with MobaXterm theme"
-   git push origin main
-   ```
-
-2. **Update API URL**:
-   - Open `index.html`
-   - Replace `https://your-render-app.onrender.com` with your actual Render URL
-   - Commit and push changes
-
-3. **Enable GitHub Pages**:
-   - Go to repository Settings
-   - Scroll to "Pages" section
-   - Source: "Deploy from a branch"
-   - Branch: `main` / `(root)`
-   - Click "Save"
-
-4. **Access Your Application**:
-   - Your app will be available at: `https://m3hr4nn.github.io/mxtsessions-generator`
-   - Wait 5-10 minutes for initial deployment
 
 ## 🔧 Configuration
 
 ### Backend Configuration (Render.com)
 
-The Flask backend requires these files in your repository:
-
 1. **app.py** - Main Flask application
 2. **requirements.txt** - Python dependencies
 3. **Optional: .env file** for environment variables
-
-### Frontend Configuration (GitHub Pages)
-
-Update the API URL in `index.html`:
-
-```javascript
-const API_BASE_URL = 'https://your-actual-render-url.onrender.com';
-```
-
-## 📝 Step-by-Step Integration Guide
-
-### Step 1: Create Repository Structure
-
-```bash
-# Create the repository structure
-mkdir mxtsessions-generator
-cd mxtsessions-generator
-
-# Create files (copy content from artifacts above)
-touch index.html
-touch styles.css
-touch app.py
-touch requirements.txt
-touch README.md
-
-# Initialize git
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/m3hr4nn/mxtsessions-generator.git
-git push -u origin main
-```
-
-### Step 2: Deploy Backend First
-
-1. Fork or create repository with backend files
-2. Go to Render.com → New Web Service
-3. Connect your GitHub repository
-4. Configure as Python app with:
-   - Build: `pip install -r requirements.txt`
-   - Start: `python app.py`
-5. Deploy and note the URL
-
-### Step 3: Update Frontend
-
-1. Edit `index.html`
-2. Replace API_BASE_URL with your Render URL
-3. Commit and push to GitHub
-
-### Step 4: Enable GitHub Pages
-
-1. Repository Settings → Pages
-2. Source: Deploy from branch `main`
-3. Wait for deployment
-
-### Step 5: Test the Application
-
-1. Visit your GitHub Pages URL
-2. Upload a test Excel file
-3. Verify file generation works
 
 ## 🛠️ File Structure Details
 
