@@ -113,14 +113,6 @@ mxtsessions-generator/
 
 
 
-## 🔧 Configuration
-
-### Backend Configuration (Render.com)
-
-1. **app.py** - Main Flask application
-2. **requirements.txt** - Python dependencies
-3. **Optional: .env file** for environment variables
-
 ## 🛠️ File Structure Details
 
 ### Frontend Files (GitHub Pages)
@@ -134,12 +126,12 @@ mxtsessions-generator/
 ```
 ├── app.py             # Flask API server
 ├── requirements.txt   # Python dependencies
-└── runtime.txt        # Python version (optional)
+└── runtime.txt        # Python version (not included/optional)
 ```
 
 ## 🎨 MobaXterm Theme Features
 
-The new dark theme includes:
+The dark theme includes:
 
 - **Terminal-inspired color scheme**: Dark backgrounds with cyan/blue accents
 - **Monospace fonts**: Consolas/Monaco for authentic terminal look
@@ -199,27 +191,6 @@ API information and version
   ]
 }
 ```
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-1. **CORS Errors**:
-   - Ensure Flask-CORS is installed and configured
-   - Check if Render service is running
-
-2. **File Upload Fails**:
-   - Verify Excel file has correct column headers
-   - Check file size (Render free tier has limits)
-
-3. **Encryption Errors**:
-   - Ensure encryption key is provided when needed
-   - Verify password format in Excel file
-
-4. **GitHub Pages Not Updating**:
-   - Check Actions tab for deployment status
-   - Clear browser cache
-   - Wait up to 10 minutes for changes
 
 ### Debug Mode
 
@@ -379,22 +350,16 @@ The application is fully responsive and works on:
 The backend includes health check endpoints for monitoring:
 
 ```bash
-# Check if service is running
-curl https://your-render-app.onrender.com/health
+# Check if Render service is running
+curl https://mxtsessions-api.onrender.com/health
 
 # Expected response
 {
   "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00"
+  "timestamp": "2025-07-26T10:30:00"
 }
 ```
 
-### Usage Analytics (Optional)
-Add Google Analytics or similar service to track:
-- File upload frequency
-- Success/error rates
-- Popular features
-- User geography
 
 ## 🔄 Continuous Integration
 
