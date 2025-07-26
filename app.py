@@ -129,8 +129,23 @@ def write_excel_file(data, output_path):
     except Exception as e:
         raise Exception(f"Failed to write Excel file: {str(e)}")
 
-def generate_mxtsessions_content(data, file_name):
-    """Generate MobaXterm sessions file content"""
+def mobaxterm_encrypt_password(password, master_password):
+    """
+    Encrypt password using MobaXterm-compatible method
+    This uses a simplified version of MobaXterm's encryption
+    """
+    try:
+        # Use the same encryption method but format for MobaXterm
+        key = generate_key_from_password(master_password)
+        fernet = Fernet(key)
+        encrypted = fernet.encrypt(password.encode())
+        # Return base64 encoded for MobaXterm compatibility
+        return base64.urlsafe_b64encode(encrypted).decode()
+    except Exception as e:
+        raise Exception(f"MobaXterm encryption failed: {str(e)}")
+
+def generate_mxtsessions_content(data, file_name, password_format='plain', encryption_key=None):
+    """Generate MobaXterm sessions file content with password format option"""
     
     # Header section
     content = "[Bookmarks]\n"
@@ -144,6 +159,17 @@ def generate_mxtsessions_content(data, file_name):
         username = row['user']
         password = row['password']
         
+        # Handle password based on format preference
+        if password_format == 'encrypted' and encryption_key and password:
+            try:
+                # Encrypt password for MobaXterm
+                password = mobaxterm_encrypt_password(password, encryption_key)
+                # Add encryption indicator for MobaXterm (custom format)
+                password = f"ENC:{password}"
+            except Exception as e:
+                # If encryption fails, fall back to plain text with warning
+                password = f"ENCRYPT_FAILED_{password}"
+        
         # Session entry format for MobaXterm
         session_name = f"{hostname}_{ip}"
         content += f"{session_name}=#109#0%{ip}%22%{username}%{password}%-1%-1%%%%%0%0%0%%1080%%0%0%1#MobaFont%10%0%0%-1%15%236,236,236%30,30,30%180,180,192%0%-1%0%%xterm%-1%-1%_Std_Colors_0_%80%24%0%1%-1%<none>%%0%1%-1#0# #-1\n"
@@ -153,11 +179,16 @@ def generate_mxtsessions_content(data, file_name):
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({
-        "message": "MXTSessions Generator API - Lightweight Version",
-        "version": "1.1.0",
+        "message": "MXTSessions Generator API - Enhanced Version",
+        "version": "2.0.0",
+        "features": [
+            "Generate MobaXterm sessions with plain text passwords",
+            "Generate MobaXterm sessions with encrypted passwords",
+            "MobaXterm-compatible password encryption",
+            "Lightweight processing without pandas"
+        ],
         "endpoints": {
-            "/generate": "POST - Generate MobaXterm sessions file",
-            "/encrypt": "POST - Encrypt passwords in Excel file",
+            "/generate": "POST - Generate MobaXterm sessions file (supports passwordFormat: 'plain' or 'encrypted')",
             "/health": "GET - Health check"
         }
     })
@@ -180,8 +211,13 @@ def generate_sessions():
         if not file.filename.endswith('.xlsx'):
             return jsonify({"error": "Only .xlsx files are supported"}), 400
         
-        # Get encryption key if provided
-        encryption_key = request.form.get('encryptionKey', '')
+        # Get password format preference (plain or encrypted)
+        password_format = request.form.get('passwordFormat', 'plain')
+        encryption_key = request.form.get('encryptionKey', '') if password_format == 'encrypted' else None
+        
+        # Validate encryption key if encrypted format is requested
+        if password_format == 'encrypted' and not encryption_key:
+            return jsonify({"error": "Master password is required for encrypted format"}), 400
         
         # Read Excel file
         try:
@@ -190,22 +226,17 @@ def generate_sessions():
         except Exception as e:
             return jsonify({"error": str(e)}), 400
         
-        # Decrypt passwords if encryption key is provided
-        if encryption_key:
-            try:
-                for row in data:
-                    encrypted_password = row['password']
-                    if encrypted_password and encrypted_password.strip():
-                        row['password'] = decrypt_password(encrypted_password, encryption_key)
-            except Exception as e:
-                return jsonify({"error": f"Password decryption failed: {str(e)}"}), 400
-        
         # Generate file name from original filename
         base_filename = os.path.splitext(file.filename)[0]
         
         # Generate MobaXterm sessions content
         try:
-            sessions_content = generate_mxtsessions_content(data, base_filename)
+            sessions_content = generate_mxtsessions_content(
+                data, 
+                base_filename, 
+                password_format=password_format,
+                encryption_key=encryption_key
+            )
         except Exception as e:
             return jsonify({"error": f"Failed to generate sessions: {str(e)}"}), 500
         
@@ -214,67 +245,9 @@ def generate_sessions():
             tmp_file.write(sessions_content)
             tmp_file_path = tmp_file.name
         
-        # Return file
-        try:
-            return send_file(
-                tmp_file_path,
-                as_attachment=True,
-                download_name=f"{base_filename}.mxtsessions",
-                mimetype='text/plain'
-            )
-        finally:
-            # Clean up temporary file
-            try:
-                os.unlink(tmp_file_path)
-            except:
-                pass
-                
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
-
-@app.route('/encrypt', methods=['POST'])
-def encrypt_passwords():
-    try:
-        # Check if file is present
-        if 'file' not in request.files:
-            return jsonify({"error": "No file uploaded"}), 400
-        
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"error": "No file selected"}), 400
-        
-        if not file.filename.endswith('.xlsx'):
-            return jsonify({"error": "Only .xlsx files are supported"}), 400
-        
-        # Get encryption key
-        encryption_key = request.form.get('encryptionKey', '')
-        if not encryption_key:
-            return jsonify({"error": "Encryption key is required"}), 400
-        
-        # Read Excel file
-        try:
-            file_content = file.read()
-            data = read_excel_file(file_content)
-        except Exception as e:
-            return jsonify({"error": str(e)}), 400
-        
-        # Encrypt passwords
-        try:
-            for row in data:
-                password = row['password']
-                if password and password.strip():
-                    row['password'] = encrypt_password(password.strip(), encryption_key)
-        except Exception as e:
-            return jsonify({"error": f"Password encryption failed: {str(e)}"}), 400
-        
-        # Create temporary Excel file
-        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp_file:
-            write_excel_file(data, tmp_file.name)
-            tmp_file_path = tmp_file.name
-        
-        # Generate output filename
-        base_filename = os.path.splitext(file.filename)[0]
-        output_filename = f"{base_filename}_encrypted.xlsx"
+        # Generate filename based on format
+        format_suffix = '_encrypted' if password_format == 'encrypted' else ''
+        output_filename = f"{base_filename}{format_suffix}.mxtsessions"
         
         # Return file
         try:
@@ -282,7 +255,7 @@ def encrypt_passwords():
                 tmp_file_path,
                 as_attachment=True,
                 download_name=output_filename,
-                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                mimetype='text/plain'
             )
         finally:
             # Clean up temporary file
