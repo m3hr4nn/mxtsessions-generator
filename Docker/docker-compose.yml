@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  mxtsessions-generator:
+    build: .
+    container_name: mxtsessions-generator
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - PORT=5000
+    restart: unless-stopped
+    volumes:
+      # Optional: Mount a volume for temporary files if needed
+      - ./temp:/app/temp
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: mxtsessions-network
