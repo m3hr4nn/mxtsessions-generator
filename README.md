@@ -479,14 +479,14 @@ if (savedTheme === 'light') {
 ## 📚 Additional Resources
 
 ### Documentation Links
+- [Inpiration and Information](https://gist.github.com/Ruzgfpegk/ab597838e4abbe8de30d7224afd062ea.html)
 - [MobaXterm Documentation](https://mobaxterm.mobatek.net/documentation.html)
 - [Flask Documentation](https://flask.palletsprojects.com/)
 - [GitHub Pages Guide](https://docs.github.com/en/pages)
 - [Render.com Documentation](https://render.com/docs)
 
-### Community
+### Enhance this project
 - [GitHub Issues](https://github.com/m3hr4nn/mxtsessions-generator/issues)
-- [Discussions](https://github.com/m3hr4nn/mxtsessions-generator/discussions)
 
 ### Contributing
 1. Fork the repository
